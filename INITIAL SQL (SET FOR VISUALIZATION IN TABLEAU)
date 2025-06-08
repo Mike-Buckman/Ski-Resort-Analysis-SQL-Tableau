@@ -1,0 +1,51 @@
+--STATEMENT TO BRING TOGETHER DATA AND PROVIDE CATEGORIZATIONS FOR TABLEAU ANALYSIS
+SELECT 
+R.Resort
+,R.Latitude
+,R.Longitude
+,R.Country	
+,R.Continent
+,R.Price	
+,R.Season	
+,R."Highest point"	
+,R."Lowest point"	
+,R."Beginner slopes"	
+,R."Intermediate slopes"	
+,R."Difficult slopes"	
+,R."Total slopes"	
+,R."Longest run"	
+,R."Snow cannons"	
+,R."Surface lifts"	
+,R."Chair lifts"	
+,R."Gondola lifts"	
+,R."Total lifts"	
+,R."Lift capacity"	
+,R."Child friendly"	
+,R.Snowparks	
+,R.Nightskiing	
+,R."Summer skiing"
+,S."Month"	
+,S.Latitude	
+,S.Longitude	
+,S.Snow 
+,RANK() OVER (PARTITION BY R.Resort, S.Snow ORDER BY S.snow) AS SNOW_RANK_RESORT
+,RANK() OVER (PARTITION BY R.Country, S.Snow ORDER BY S.snow) AS SNOW_RANK_COUNTRY
+,CASE 
+	WHEN R."Beginner slopes" >=25 AND R."Beginner slopes" <=35 THEN 'AVERAGE'
+	WHEN R."Beginner slopes" <=25 THEN 'NOT BEGINNER'
+	WHEN R."Beginner slopes"  >35 THEN 'GREAT FOR BEGINNER'
+END BEGINNER_RATING
+,CASE 
+	WHEN R."Intermediate slopes"  >=30 AND R."Intermediate slopes"  <=40 THEN 'AVERAGE'
+	WHEN R."Intermediate slopes"  <=29 THEN 'NOT INTERMEDIATE'
+	WHEN R."Intermediate slopes"   >40 THEN 'GREAT FOR INTERMEDIATE'
+END INTERMEDIATE_RATING
+,CASE 
+	WHEN R."Difficult slopes"  >=15 AND R."Difficult slopes"  <=20 THEN 'AVERAGE'
+	WHEN R."Difficult slopes"  <=14 THEN 'NOT DIFFICULT'
+	WHEN R."Difficult slopes"   >20 THEN 'GREAT FOR ADVANCED'
+END DIFFICULT_RATING
+FROM resorts R 
+JOIN snow S 
+ON ROUND(R.Latitude) = ROUND(S.Latitude) 
+AND ROUND(R.Longitude) = ROUND(S.Longitude) 
