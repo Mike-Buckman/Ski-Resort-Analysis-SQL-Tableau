@@ -1,8 +1,8 @@
 --STATEMENT TO BRING TOGETHER DATA AND PROVIDE CATEGORIZATIONS FOR TABLEAU ANALYSIS
 SELECT 
 R.Resort
-,R.Latitude
-,R.Longitude
+,R.Latitude AS RESORT_LATITUDE
+,R.Longitude AS RESORT_LONGITUDE
 ,R.Country	
 ,R.Continent
 ,R.Price	
@@ -24,9 +24,9 @@ R.Resort
 ,R.Snowparks	
 ,R.Nightskiing	
 ,R."Summer skiing"
-,S."Month"	
-,S.Latitude	
-,S.Longitude	
+,S."Month" AS SNOW_MONTH	
+,S.Latitude	AS SNOW_LATITUDE
+,S.Longitude AS SNOW_LONGITIUDE	
 ,S.Snow 
 ,RANK() OVER (PARTITION BY R.Resort, S.Snow ORDER BY S.snow) AS SNOW_RANK_RESORT
 ,RANK() OVER (PARTITION BY R.Country, S.Snow ORDER BY S.snow) AS SNOW_RANK_COUNTRY
