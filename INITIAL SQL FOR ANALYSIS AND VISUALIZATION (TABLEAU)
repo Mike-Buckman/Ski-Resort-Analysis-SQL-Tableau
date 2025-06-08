@@ -1,54 +1,100 @@
+WITH RESORT_BEST_SNOW AS (
+    -- Step 1: Join tables ONCE and find the single snowiest month for EACH resort.
+    SELECT 
+        -- Select all columns needed for the final output
+        R.Resort,
+        R.Country,
+        R.Continent,
+        R.Price,
+        R.Season,
+        R."Highest point",
+        R."Lowest point",
+        R."Beginner slopes",
+        R."Intermediate slopes",
+        R."Difficult slopes",
+        R."Total slopes",
+        R."Longest run",
+        R."Snow cannons",
+        R."Surface lifts",
+        R."Chair lifts",
+        R."Gondola lifts",
+        R."Total lifts",
+        R."Lift capacity",
+        R."Child friendly",
+        R.Snowparks,
+        R.Nightskiing,
+        R."Summer skiing",
+        R.Latitude AS RESORT_LATITUDE,
+        R.Longitude AS RESORT_LONGITUDE,
+        S."Month" AS SNOW_MONTH,
+        S.Snow,
+        -- The highest snowfall will always get RN = 1.
+        ROW_NUMBER() OVER (PARTITION BY R.Resort ORDER BY S.Snow DESC) as RN
+    FROM 
+        resorts R 
+    JOIN 
+        snow S ON ROUND(R.Latitude) = ROUND(S.Latitude) 
+                AND ROUND(R.Longitude) = ROUND(S.Longitude)
+), FINAL_RANKED_DATA AS (
+    -- Step 2: Filter for only the top snow record (RN=1) and then rank by country.
+    SELECT
+        BS.*, -- Select all columns from the previous CTE
+        -- Now that we have one row per resort, we can correctly rank them within their country.
+        -- Since RN is always 1, we can just call it the resort rank.
+        1 AS SNOW_RANK_RESORT, 
+        RANK() OVER (PARTITION BY BS.Country ORDER BY BS.Snow DESC) AS SNOW_RANK_COUNTRY
+    FROM
+        RESORT_BEST_SNOW BS
+    WHERE
+        BS.RN = 1 -- This is the key step to remove all duplicates.
+)
+-- Step 3: Select from the final pre-computed data and apply categorizations. NO JOINS HERE.
 SELECT 
-R.Resort
-,R.Latitude AS RESORT_LATITUDE
-,R.Longitude AS RESORT_LONGITUDE
-,R.Country	
-,R.Continent
-,R.Price	
-,R.Season	
-,R."Highest point"	
-,R."Lowest point"	
-,R."Beginner slopes"	
-,R."Intermediate slopes"	
-,R."Difficult slopes"	
-,R."Total slopes"	
-,R."Longest run"	
-,R."Snow cannons"	
-,R."Surface lifts"	
-,R."Chair lifts"	
-,R."Gondola lifts"	
-,R."Total lifts"	
-,R."Lift capacity"	
-,R."Child friendly"	
-,R.Snowparks	
-,R.Nightskiing	
-,R."Summer skiing"
-,S."Month" AS SNOW_MONTH	
-,S.Latitude	AS SNOW_LATITUDE
-,S.Longitude AS SNOW_LONGITIUDE	
-,S.Snow 
-,CASE 
-	WHEN R."Beginner slopes" >=25 AND R."Beginner slopes" <=35 THEN 'AVERAGE'
-	WHEN R."Beginner slopes" <=25 THEN 'NOT BEGINNER'
-	WHEN R."Beginner slopes"  >35 THEN 'GREAT FOR BEGINNER'
-END BEGINNER_RATING
---CATEGORIZATION OF INTERMEDIATE FRIENDLY
-,CASE 
-	WHEN R."Intermediate slopes"  >=30 AND R."Intermediate slopes"  <=40 THEN 'AVERAGE'
-	WHEN R."Intermediate slopes"  <=29 THEN 'NOT INTERMEDIATE'
-	WHEN R."Intermediate slopes"   >40 THEN 'GREAT FOR INTERMEDIATE'
-END INTERMEDIATE_RATING
---CATEGORIZATION OF ADVANCED FRIENDLY
-,CASE 
-	WHEN R."Difficult slopes"  >=15 AND R."Difficult slopes"  <=20 THEN 'AVERAGE'
-	WHEN R."Difficult slopes"  <=14 THEN 'NOT DIFFICULT'
-	WHEN R."Difficult slopes"  >20 THEN 'GREAT FOR ADVANCED'
-END DIFFICULT_RATING
---SNOW RANKING
-,ROW_NUMBER() OVER (PARTITION BY  R.Resort ORDER BY S.snow DESC) AS SNOW_RANK_RESORT
---RANK FOR TOP N OF SNOWFAL BY COUNTRY
-,ROW_NUMBER() OVER (PARTITION BY   R.Country ORDER BY S.snow DESC) AS SNOW_RANK_COUNTRY
-FROM resorts R JOIN snow S 
---JOIN ON ROUNDED LOCATION FOR SNOWFALL
-ON ROUND(R.Latitude) = ROUND(S.Latitude) 
-AND ROUND(R.Longitude) = ROUND(S.Longitude) 
+    FRD.Resort,
+    FRD.RESORT_LATITUDE,
+    FRD.RESORT_LONGITUDE,
+    FRD.Country,
+    FRD.Continent,
+    FRD.Price,
+    FRD.Season,
+    FRD."Highest point",
+    FRD."Lowest point",
+    FRD."Beginner slopes",
+    FRD."Intermediate slopes",
+    FRD."Difficult slopes",
+    FRD."Total slopes",
+    FRD."Longest run",
+    FRD."Snow cannons",
+    FRD."Surface lifts",
+    FRD."Chair lifts",
+    FRD."Gondola lifts",
+    FRD."Total lifts",
+    FRD."Lift capacity",
+    FRD."Child friendly",
+    FRD.Snowparks,
+    FRD.Nightskiing,
+    FRD."Summer skiing",
+    FRD.SNOW_MONTH,
+    FRD.Snow,
+    FRD.SNOW_RANK_COUNTRY,
+    FRD.SNOW_RANK_RESORT,
+    -- Categorization of Beginner Friendly
+    CASE 
+        WHEN FRD."Beginner slopes" > 35 THEN 'GREAT FOR BEGINNER'
+        WHEN FRD."Beginner slopes" >= 25 THEN 'AVERAGE'
+        ELSE 'NOT BEGINNER'
+    END AS BEGINNER_RATING,
+    -- Categorization of Intermediate Friendly
+    CASE 
+        WHEN FRD."Intermediate slopes" > 40 THEN 'GREAT FOR INTERMEDIATE'
+        WHEN FRD."Intermediate slopes" >= 30 THEN 'AVERAGE'
+        ELSE 'NOT INTERMEDIATE'
+    END AS INTERMEDIATE_RATING,
+    -- Categorization of Advanced Friendly
+    CASE 
+        WHEN FRD."Difficult slopes" > 20 THEN 'GREAT FOR ADVANCED'
+        WHEN FRD."Difficult slopes" >= 15 THEN 'AVERAGE'
+        ELSE 'NOT DIFFICULT'
+    END AS DIFFICULT_RATING
+FROM 
+    FINAL_RANKED_DATA FRD;
